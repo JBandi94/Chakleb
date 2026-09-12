@@ -1,0 +1,17 @@
+{
+  "name": "tiktok-game-server",
+  "version": "1.0.0",
+  "description": "TikTok Live Game Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "tiktok-live-connector": "^1.1.8"
+  }
+}
