@@ -1,0 +1,18 @@
+{
+  "name": "chakleb-tiktok-game",
+  "version": "2.0.0",
+  "description": "لعبة الشقلبة والمفاجآت - يدوي وآلي مع بث تيك توك المباشر",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "tiktok-live-connector": "2.4.4"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
