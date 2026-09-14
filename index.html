@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الشقلبة والمفاجآت - تيك توك ويدوي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.75);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --tiktok-color: #ff0050;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .main-wrapper {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .chat-sidebar {
+            width: 320px;
+            height: 580px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            backdrop-filter: blur(12px);
+        }
+
+        .chat-sidebar.active {
+            display: flex;
+        }
+
+        .chat-header {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            border-right: 3px solid var(--accent);
+            word-break: break-word;
+        }
+
+        .chat-user {
+            color: #fcd34d;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .mode-selector {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.7rem;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.6);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-add, .btn-connect {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 0 18px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-connect {
+            background: var(--tiktok-color);
+            color: white;
+        }
+
+        .players-list {
+            max-height: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding-left: 5px;
+        }
+
+        .player-tag {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .player-name {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .player-info-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .player-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.88rem;
+            font-weight: bold;
+        }
+
+        /* أدوات إدارة اللاعب في دوره الحالي */
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-control {
+            border: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-control.edit {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-control.kick {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .auto-next-btn { display: none; }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .leaderboard-list {
+            margin: 15px 0;
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-item.highlight {
+            border: 1px solid var(--accent);
+            background: rgba(6, 182, 212, 0.15);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 2px solid var(--primary);
+            border-radius: 24px;
+            padding: 24px 18px;
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .result-number {
+            font-size: 3.2rem;
+            font-weight: 900;
+            margin: 10px 0;
+        }
+
+        .positive { color: var(--success); }
+        .negative { color: var(--danger); }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        .status-online { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-offline { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+        @media (max-width: 700px) {
+            body {
+                align-items: flex-start;
+                padding: 10px;
+            }
+
+            .main-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                max-width: 480px;
+            }
+
+            .game-container {
+                max-width: 100%;
+            }
+
+            .chat-sidebar,
+            .chat-sidebar.active {
+                width: 100%;
+                height: 280px;
+                order: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+
+    <div class="game-container">
+        
+        <div class="mode-selector" id="mode-selector">
+            <button class="mode-btn active" id="btn-manual" onclick="switchMode('manual')">🖐️ لعب يدوي</button>
+            <button class="mode-btn" id="btn-auto" onclick="switchMode('auto')">🤖 لعب آلي (تيك توك)</button>
+        </div>
+
+        <div id="setup-screen" class="screen active">
+            <h1>🎲 شقلبة الحظ</h1>
+
+            <div id="manual-setup-section">
+                <div class="input-group">
+                    <label>إضافة اللاعبين يدوياً:</label>
+                    <div class="flex-row">
+                        <input type="text" id="player-name-input" placeholder="اسم اللاعب">
+                        <button class="btn-add" onclick="addManualPlayer()">إضافة</button>
+                    </div>
+                </div>
+
+                <div class="players-list" id="manual-players-list"></div>
+            </div>
+
+            <div id="auto-setup-section" style="display: none;">
+                <div class="input-group">
+                    <label for="tiktok-id">اسم حساب التيكتوك (اليوزر):</label>
+                    <div class="flex-row">
+                        <input type="text" id="tiktok-id" placeholder="مثال: username">
+                        <button class="btn-connect" onclick="connectTikTok()">إتصال</button>
+                    </div>
+                    <div id="tiktok-status-msg" class="status-badge status-offline">غير متصل</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="join-keyword">كلمة الدخول للبث (الافتراضية: تم):</label>
+                    <input type="text" id="join-keyword" value="تم" placeholder="كلمة الدخول">
+                </div>
+
+                <div class="input-group">
+                    <label>اللاعبون المنضمون تلقائياً من التعليقات:</label>
+                    <div class="players-list" id="auto-players-list">
+                        <span style="color:var(--text-muted); font-size:0.85rem; width:100%; text-align:center;">في انتظار كتابة كلمة الدخول في الشات...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="target-score">هدف الفوز (نقاط):</label>
+                <input type="number" id="target-score" value="100" min="1">
+            </div>
+
+            <div class="error-msg" id="setup-error"></div>
+            <button class="btn-primary" onclick="startGame()">🚀 ابدأ اللعب</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <h1>دور اللاعب الحالي</h1>
+
+            <div class="player-card">
+                <div class="player-name" id="current-player-name">اسم اللاعب</div>
+                <div class="player-info-badges">
+                    <div class="player-badge">النقاط: <span id="current-player-score">0</span></div>
+                    <div class="player-badge">المركز: <span id="current-player-rank">#1</span></div>
+                </div>
+                <!-- أزرار التحكم باللاعب الحالي -->
+                <div class="player-controls">
+                    <button class="btn-control edit" id="edit-player-btn" onclick="editCurrentPlayerName()">✏️ تعديل الاسم</button>
+                    <button class="btn-control kick" onclick="kickCurrentPlayer()">🚫 إقصاء اللاعب</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="choice-number" id="choice-label">اختر رقماً من (0 إلى 99):</label>
+                <input type="number" id="choice-number" min="0" max="99" placeholder="0 - 99">
+                <div class="error-msg" id="game-error"></div>
+            </div>
+
+            <button class="btn-primary" id="flip-btn" onclick="flipCard()">💥 شقلب!</button>
+            <button class="btn-secondary" onclick="openLeaderboard()">🏆 جدول الترتيب</button>
+            <button class="btn-secondary auto-next-btn" id="auto-next-btn" onclick="manualNextTurn()">⏭️ التالي</button>
+            <button class="btn-secondary" onclick="newGame()">🔄 لعبة جديدة</button>
+        </div>
+
+    </div>
+
+    <div class="chat-sidebar" id="chat-sidebar">
+        <div class="chat-header">
+            <span>💬 تعليقات البث</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);" id="chat-count">0 تعليق</span>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+    </div>
+
+</div>
+
+<div class="modal" id="leaderboard-modal">
+    <div class="modal-content">
+        <h2>📊 ترتيب اللاعبين</h2>
+        <div class="leaderboard-list" id="leaderboard-list"></div>
+        <button class="btn-primary" onclick="closeLeaderboard()">إغلاق النافذة ❌</button>
+    </div>
+</div>
+
+<div class="modal" id="result-modal">
+    <div class="modal-content">
+        <h2>نتيجة الشقلبة!</h2>
+        <div class="result-number" id="result-value">+0</div>
+        <p id="result-text" style="color: var(--text-muted); margin-bottom: 15px;"></p>
+        <button class="btn-primary" onclick="nextTurn()">التالي ➡️</button>
+    </div>
+</div>
+
+<div class="modal" id="winner-modal">
+    <div class="modal-content">
+        <div style="font-size:3.5rem;">👑</div>
+        <h2>مبارك الفوز!</h2>
+        <p style="color: var(--text-muted); margin-top:5px;">البطل هو:</p>
+        <h1 id="winner-name" style="color: var(--accent); margin: 10px 0;"></h1>
+        <p style="margin-bottom: 20px;">النقاط: <span id="winner-score" style="color: var(--success); font-weight: bold;"></span></p>
+        <button class="btn-primary" onclick="resetGame()">لعبة جديدة 🔄</button>
+    </div>
+</div>
+
+<script>
+    let socket;
+    try {
+        socket = io();
+    } catch(e) {
+        console.warn("Socket.io غير متصل حالياً، يمكنك تجربة الواجهة اليدوية.");
+    }
+
+    let gameMode = 'manual'; 
+    let targetScore = 100;
+    let manualPlayers = [];
+    let autoPlayers = [];
+    let players = manualPlayers;
+    let currentPlayerIndex = 0;
+    let autoTimer = null;
+    let isConnectedToTikTok = false;
+    let chatCount = 0;
+
+    const setupScreen = document.getElementById('setup-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const setupError = document.getElementById('setup-error');
+    const chatSidebar = document.getElementById('chat-sidebar');
+
+    function switchMode(mode) {
+        gameMode = mode;
+        players = (mode === 'manual') ? manualPlayers : autoPlayers;
+        currentPlayerIndex = 0;
+        const btnManual = document.getElementById('btn-manual');
+        const btnAuto = document.getElementById('btn-auto');
+        const manualSection = document.getElementById('manual-setup-section');
+        const autoSection = document.getElementById('auto-setup-section');
+
+        if (mode === 'manual') {
+            btnManual.classList.add('active');
+            btnAuto.classList.remove('active');
+            manualSection.style.display = 'block';
+            autoSection.style.display = 'none';
+            chatSidebar.classList.remove('active');
+        } else {
+            btnAuto.classList.add('active');
+            btnManual.classList.remove('active');
+            manualSection.style.display = 'none';
+            autoSection.style.display = 'block';
+            chatSidebar.classList.add('active');
+            renderAutoPlayers();
+        }
+    }
+
+    function addManualPlayer() {
+        const nameInput = document.getElementById('player-name-input');
+        const name = nameInput.value.trim();
+        if (!name) return showError(setupError, "يرجى كتابة اسم اللاعب!");
+
+        manualPlayers.push({ id: String(Date.now() + Math.random()), name: name, username: name, score: 0, active: true });
+        players = manualPlayers;
+        nameInput.value = '';
+        setupError.style.display = 'none';
+        renderManualPlayers();
+    }
+
+    function renderManualPlayers() {
+        const container = document.getElementById('manual-players-list');
+        container.innerHTML = '';
+        manualPlayers.forEach((p) => {
+            const tag = document.createElement('div');
+            tag.className = 'player-tag';
+            tag.innerText = p.name;
+            container.appendChild(tag);
+        });
+    }
+
+    function editCurrentPlayerName() {
+        const currentPlayer = players[currentPlayerIndex];
+        if (!currentPlayer) return;
+
+        const newName = prompt("تعديل اسم اللاعب الحالي:", currentPlayer.name);
+        if (newName && newName.trim() !== '') {
+            currentPlayer.name = newName.trim();
+            updateTurnDisplay();
+        }
+    }
+
+    function kickCurrentPlayer() {
+        const currentPlayer = players[currentPlayerIndex];
+        if (!currentPlayer) return;
+
+        if (confirm(`هل أنت تأكد من إقصاء اللاعب (${currentPlayer.name})؟`)) {
+            currentPlayer.active = false;
+            if (gameMode === 'auto') {
+                currentPlayer.kicked = true;
+                currentPlayer.inLive = false;
+            }
+            nextTurn();
+        }
+    }
+
+    function connectTikTok() {
+        let username = document.getElementById('tiktok-id').value.trim();
+
+        if (!username) return alert('أدخل يوزر التيكتوك!');
+
+        username = username
+            .replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, '')
+            .split(/[/?#]/)[0]
+            .replace(/^@/, '')
+            .trim();
+
+        if (!username) return alert('يوزر تيكتوك غير صالح!');
+
+        document.getElementById('tiktok-id').value = username;
+        document.getElementById('tiktok-status-msg').className = "status-badge status-offline";
+        document.getElementById('tiktok-status-msg').innerText = "جاري الاتصال...";
+
+        if (!socket || !socket.connected) {
+            document.getElementById('tiktok-status-msg').innerText =
+                "السيرفر غير متصل. أعد تحميل الصفحة.";
+            return;
+        }
+
+        socket.emit('connect-tiktok', { uniqueId: username });
+    }
+
+    if(socket) {
+        socket.on('connect', () => {
+            console.log('Socket.IO متصل بالسيرفر');
+        });
+
+        socket.on('disconnect', () => {
+            isConnectedToTikTok = false;
+            const statusDiv = document.getElementById('tiktok-status-msg');
+            if (statusDiv) {
+                statusDiv.className = "status-badge status-offline";
+                statusDiv.innerText = "انقطع اتصال السيرفر";
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Socket.IO error:', err);
+            isConnectedToTikTok = false;
+            const statusDiv = document.getElementById('tiktok-status-msg');
+            if (statusDiv) {
+                statusDiv.className = "status-badge status-offline";
+                statusDiv.innerText = "تعذر الاتصال بالسيرفر";
+            }
+        });
+
+        socket.on('tiktok-status', (data) => {
+            const statusDiv = document.getElementById('tiktok-status-msg');
+            if (!statusDiv) return;
+
+            if (data.success) {
+                isConnectedToTikTok = true;
+                statusDiv.className = "status-badge status-online";
+                statusDiv.innerText = data.message || "تم الاتصال بالبث";
+            } else {
+                isConnectedToTikTok = false;
+                statusDiv.className = "status-badge status-offline";
+                statusDiv.innerText = data.message || "فشل الاتصال";
+            }
+        });
+
+        socket.on('tiktok-chat', (data) => {
+            if (gameMode !== 'auto') return;
+
+            const nickname = String(data?.nickname || data?.uniqueId || 'مستخدم').trim();
+            const uniqueId = String(data?.uniqueId || '').trim();
+            const userComment = String(data?.comment ?? '').trim();
+            const followRole = Number(data?.followRole ?? data?.user?.followRole ?? 0);
+            const isHost = normalizeChatText(uniqueId) === normalizeChatText(document.getElementById('tiktok-id')?.value || '');
+
+            addChatMessage(nickname, userComment);
+
+            const playerKey = (uniqueId || nickname).trim();
+            if (!playerKey || !userComment) return;
+
+            const keywordInput = document.getElementById('join-keyword');
+            const keyword = normalizeChatText(keywordInput ? keywordInput.value : 'تم');
+            const normalizedComment = normalizeChatText(userComment);
+
+            if (keyword && normalizedComment === keyword) {
+                if (!isHost && followRole <= 0) {
+                    return;
+                }
+
+                const normalizedPlayerKey = playerKey.toLocaleLowerCase('ar');
+                let existingPlayer = autoPlayers.find(p => {
+                    const key = String(p.username || p.id || p.name || '').trim();
+                    return key.toLocaleLowerCase('ar') === normalizedPlayerKey;
+                });
+
+                if (!existingPlayer) {
+                    existingPlayer = {
+                        id: playerKey,
+                        name: nickname || playerKey,
+                        username: playerKey,
+                        score: 0,
+                        active: true,
+                        inLive: true,
+                        kicked: false
+                    };
+                    autoPlayers.push(existingPlayer);
+                } else if (!existingPlayer.kicked) {
+                    existingPlayer.active = true;
+                    existingPlayer.inLive = true;
+                    if (nickname) existingPlayer.name = nickname;
+                }
+
+                players = autoPlayers;
+                renderAutoPlayers();
+                return;
+            }
+
+            if (uniqueId && gameScreen.classList.contains('active') && autoPlayers.length > 0) {
+                const currentPlayer = autoPlayers[currentPlayerIndex];
+                const samePlayer = currentPlayer &&
+                    String(currentPlayer.username || currentPlayer.id).toLocaleLowerCase('ar') ===
+                    uniqueId.toLocaleLowerCase('ar');
+
+                if (samePlayer && currentPlayer.active) {
+                    const normalizedNumber = userComment
+                        .replace(/[٠-٩]/g, d => String('٠١٢٣٥٦٧٨٩'.indexOf(d)))
+                        .trim();
+                    const num = Number(normalizedNumber);
+
+                    if (/^\d{1,2}$/.test(normalizedNumber) && num >= 0 && num <= 99) {
+                        document.getElementById('choice-number').value = num;
+                        flipCard();
+                    }
+                }
+            }
+        });
+
+        socket.on('tiktok-member-event', (data) => {
+            if (gameMode !== 'auto') return;
+
+            const uniqueId = String(data?.uniqueId || '').trim();
+            const nickname = String(data?.nickname || uniqueId || 'مستخدم').trim();
+            const followRole = Number(data?.followRole ?? 0);
+            if (!uniqueId || followRole <= 0) return;
+
+            const hostId = normalizeChatText(document.getElementById('tiktok-id')?.value || '');
+            const isHost = normalizeChatText(uniqueId) === hostId;
+            if (!isHost && followRole <= 0) return;
+
+            const player = autoPlayers.find(p =>
+                String(p.username || p.id || '').toLocaleLowerCase('ar') === uniqueId.toLocaleLowerCase('ar')
+            );
+
+            if (player && !player.kicked) {
+                player.active = true;
+                player.inLive = true;
+                player.name = nickname || player.name;
+                players = autoPlayers;
+                renderAutoPlayers();
+            }
+        });
+    }
+
+    function normalizeChatText(value) {
+        return String(value ?? '')
+            .replace(/[\u0640]/g, '')
+            .replace(/[\u200B-\u200D\uFEFF]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLocaleLowerCase('ar');
+    }
+
+    function addChatMessage(user, msg) {
+        const container = document.getElementById('chat-messages');
+        const item = document.createElement('div');
+        item.className = 'chat-item';
+
+        const userDiv = document.createElement('div');
+        userDiv.className = 'chat-user';
+        userDiv.textContent = user || 'مستخدم';
+
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = msg || '(تعليق بدون نص)';
+
+        item.appendChild(userDiv);
+        item.appendChild(messageDiv);
+        container.appendChild(item);
+        container.scrollTop = container.scrollHeight;
+
+        chatCount++;
+        document.getElementById('chat-count').innerText = `${chatCount} تعليق`;
+    }
+
+    function renderAutoPlayers() {
+        const container = document.getElementById('auto-players-list');
+        container.innerHTML = '';
+        const activePlayers = autoPlayers.filter(p => p.active);
+        
+        if (activePlayers.length === 0) {
+            container.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem; width:100%; text-align:center;">في انتظار كتابة كلمة الدخول في الشات...</span>';
+            return;
+        }
+
+        activePlayers.forEach((p) => {
+            const tag = document.createElement('div');
+            tag.className = 'player-tag';
+            tag.innerText = `${p.name} (${p.score} ن)`;
+            container.appendChild(tag);
+        });
+    }
+
+    function startGame() {
+        const targetInput = parseInt(document.getElementById('target-score').value);
+        targetScore = isNaN(targetInput) || targetInput < 1 ? 100 : targetInput;
+
+        const activePlayers = players.filter(p => p.active);
+
+        if (activePlayers.length === 0) {
+            return showError(setupError, "يرجى إضافة لاعبين أولاً لبدء اللعبة!");
+        }
+
+        currentPlayerIndex = 0;
+        document.getElementById('mode-selector').style.display = 'none';
+        setupScreen.classList.remove('active');
+        gameScreen.classList.add('active');
+
+        const editBtn = document.getElementById('edit-player-btn');
+
+        if (gameMode === 'auto') {
+            document.getElementById('choice-number').disabled = true;
+            document.getElementById('flip-btn').style.display = 'none';
+            document.getElementById('auto-next-btn').style.display = 'block';
+            document.getElementById('choice-label').innerText = "في انتظار كتابة الرقم (0 - 99) من اللاعب في التعليقات...";
+            if (editBtn) editBtn.style.display = 'none'; // إخفاء تعديل الاسم في الآلي
+        } else {
+            document.getElementById('choice-number').disabled = false;
+            document.getElementById('flip-btn').style.display = 'block';
+            document.getElementById('auto-next-btn').style.display = 'none';
+            document.getElementById('choice-label').innerText = "اختر رقماً من (0 إلى 99):";
+            if (editBtn) editBtn.style.display = 'inline-block'; // إظهار تعديل الاسم في اليدوي
+        }
+
+        updateTurnDisplay();
+    }
+
+    function getPlayerRank(player) {
+        const sorted = [...players].sort((a, b) => b.score - a.score);
+        return sorted.findIndex(p => String(p.id) === String(player.id)) + 1;
+    }
+
+    function updateTurnDisplay() {
+        const currentPlayer = players[currentPlayerIndex];
+        if (!currentPlayer) return;
+
+        document.getElementById('current-player-name').innerText = currentPlayer.name;
+        document.getElementById('current-player-score').innerText = currentPlayer.score;
+        document.getElementById('current-player-rank').innerText = `#${getPlayerRank(currentPlayer)}`;
+        document.getElementById('choice-number').value = '';
+        document.getElementById('game-error').style.display = 'none';
+    }
+
+    function manualNextTurn() {
+        nextTurn();
+    }
+
+    function flipCard() {
+        const numInput = document.getElementById('choice-number').value;
+        const gameError = document.getElementById('game-error');
+
+        if (numInput === '' || numInput < 0 || numInput > 99) {
+            if (gameMode === 'manual') showError(gameError, "اختر رقماً صحيحاً بين 0 و 99");
+            return;
+        }
+
+        gameError.style.display = 'none';
+
+        const isPositive = Math.random() < 0.7;
+        let generatedValue = isPositive ? Math.floor(Math.random() * 51) : -(Math.floor(Math.random() * 15) + 1);
+
+        const currentPlayer = players[currentPlayerIndex];
+        currentPlayer.score += generatedValue;
+        if (currentPlayer.score < 0) currentPlayer.score = 0;
+
+        const resultModal = document.getElementById('result-modal');
+        const resultValDiv = document.getElementById('result-value');
+        const resultText = document.getElementById('result-text');
+
+        if (generatedValue >= 0) {
+            resultValDiv.innerText = `+${generatedValue}`;
+            resultValDiv.className = "result-number positive";
+            resultText.innerText = `رائع يا ${currentPlayer.name}! كسبت نقاطاً إضافية.`;
+        } else {
+            resultValDiv.innerText = `${generatedValue}`;
+            resultValDiv.className = "result-number negative";
+            resultText.innerText = `للأسف يا ${currentPlayer.name}! خسرت بعض النقاط.`;
+        }
+
+        resultModal.classList.add('show');
+
+        if (gameMode === 'auto') {
+            clearTimeout(autoTimer);
+            autoTimer = setTimeout(() => {
+                nextTurn();
+            }, 3000);
+        }
+    }
+
+    function nextTurn() {
+        clearTimeout(autoTimer);
+        document.getElementById('result-modal').classList.remove('show');
+
+        let activePlayers = players.filter(p => p.active);
+        
+        if (activePlayers.length === 0) {
+            alert("تم إقصاء جميع اللاعبين!");
+            return resetGame();
+        }
+
+        const currentPlayer = players[currentPlayerIndex];
+        if (currentPlayer && currentPlayer.active && currentPlayer.score >= targetScore) {
+            showWinnerWindow(currentPlayer);
+            return;
+        }
+
+        do {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        } while (!players[currentPlayerIndex].active);
+
+        updateTurnDisplay();
+    }
+
+    function openLeaderboard() {
+        const listDiv = document.getElementById('leaderboard-list');
+        listDiv.innerHTML = '';
+
+        const sorted = [...players].sort((a, b) => b.score - a.score);
+
+        sorted.forEach((p, idx) => {
+            const isCurrent = String(p.id) === String(players[currentPlayerIndex].id);
+            const item = document.createElement('div');
+            item.className = `leaderboard-item ${isCurrent ? 'highlight' : ''}`;
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <b>#${idx + 1}</b>
+                    <span>${p.name} ${!p.active ? '(مقصى)' : ''}</span>
+                </div>
+                <div>
+                    <b style="color:var(--accent);">${p.score} ن</b>
+                </div>
+            `;
+            listDiv.appendChild(item);
+        });
+
+        document.getElementById('leaderboard-modal').classList.add('show');
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboard-modal').classList.remove('show');
+    }
+
+    function showWinnerWindow(winner) {
+        document.getElementById('winner-name').innerText = winner.name;
+        document.getElementById('winner-score').innerText = `${winner.score} / ${targetScore}`;
+        document.getElementById('winner-modal').classList.add('show');
+    }
+
+    function newGame() {
+        clearTimeout(autoTimer);
+        document.getElementById('winner-modal').classList.remove('show');
+        document.getElementById('result-modal').classList.remove('show');
+        document.getElementById('leaderboard-modal').classList.remove('show');
+
+        if (gameMode === 'auto') {
+            autoPlayers = [];
+            players = autoPlayers;
+            renderAutoPlayers();
+        } else {
+            manualPlayers = [];
+            players = manualPlayers;
+            renderManualPlayers();
+        }
+
+        currentPlayerIndex = 0;
+        gameScreen.classList.remove('active');
+        setupScreen.classList.add('active');
+        document.getElementById('mode-selector').style.display = 'flex';
+    }
+
+    function resetGame() {
+        newGame();
+    }
+
+    function showError(el, msg) {
+        el.innerText = msg;
+        el.style.display = 'block';
+    }
+
+    document.getElementById('player-name-input')?.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') addManualPlayer();
+    });
+</script>
+</body>
+</html>
